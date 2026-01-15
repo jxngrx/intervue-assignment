@@ -5,7 +5,7 @@ import { ValidationError } from '../utils/errors';
  * Validate request body has required fields
  */
 export const validateRequired = (fields: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     const missing: string[] = [];
 
     fields.forEach((field) => {
@@ -27,7 +27,7 @@ export const validateRequired = (fields: string[]) => {
  */
 export const validatePollCreation = (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   const { question, options, duration } = req.body;
@@ -52,7 +52,7 @@ export const validatePollCreation = (
  */
 export const validateVoteSubmission = (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   const { pollId, studentId, optionIndex } = req.body;
