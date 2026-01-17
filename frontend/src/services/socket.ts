@@ -2,6 +2,13 @@ import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '../config/constants';
 import { ClientToServerEvents, ServerToClientEvents } from '../types/socket';
 
+// Global toast function - will be set by App initialization
+let globalToast: ((message: string, type?: 'success' | 'error' | 'info') => void) | null = null;
+
+export const setGlobalToast = (toastFn: (message: string, type?: 'success' | 'error' | 'info') => void) => {
+  globalToast = toastFn;
+};
+
 let socketInstance: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
 export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> => {
@@ -49,7 +56,11 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
           });
 
           currentSocket.io.engine.on('error', (error: string | Error) => {
-            console.error('❌ Socket.io engine error:', error);
+            const errorMsg = typeof error === 'string' ? error : error.message || 'Unknown engine error';
+            console.error('❌ Socket.io engine error:', errorMsg);
+            if (globalToast) {
+              globalToast(`Engine Error: ${errorMsg}`, 'error');
+            }
           });
         }
       } catch (e) {
@@ -67,10 +78,27 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
     });
 
     socketInstance.on('connect_error', (error) => {
-      console.error('❌ Socket.io connection error:', error.message);
+      const errorMessage = error.message || 'Unknown connection error';
+      const errorType = error.type || 'unknown';
+      const errorDescription = error.description || '';
+
+      console.error('❌ Socket.io connection error:', errorMessage);
+      console.error('Error type:', errorType);
+      console.error('Error description:', errorDescription);
+
+      // Show detailed error in toast for mobile debugging
+      const fullErrorMsg = `Connection Error: ${errorMessage}${errorType !== 'unknown' ? ` (Type: ${errorType})` : ''}${errorDescription ? ` - ${errorDescription}` : ''}`;
+
+      if (globalToast) {
+        globalToast(fullErrorMsg, 'error');
+      }
 
       // Handle XHR polling errors specifically
-      if (error.message.includes('xhr poll error') || error.message.includes('polling')) {
+      if (errorMessage.includes('xhr poll error') || errorMessage.includes('polling') || errorMessage.includes('XHR')) {
+        const pollErrorMsg = `XHR Polling Error: ${errorMessage}. Retrying with WebSocket...`;
+        if (globalToast) {
+          globalToast(pollErrorMsg, 'error');
+        }
         console.log('🔄 XHR polling error detected, retrying with websocket only...');
         if (socketInstance && !socketInstance.connected) {
           // Try websocket only as fallback
@@ -86,6 +114,10 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
 
       // For mobile, try to reconnect with different transport
       if (isMobile && socketInstance && !socketInstance.connected) {
+        const retryMsg = `Mobile connection issue. Retrying with polling transport...`;
+        if (globalToast) {
+          globalToast(retryMsg, 'info');
+        }
         setTimeout(() => {
           if (socketInstance && !socketInstance.connected) {
             console.log('🔄 Retrying connection with polling transport...');
