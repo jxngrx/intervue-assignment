@@ -1,4 +1,4 @@
-# Multi-stage build for Node.js TypeScript backend
+# Multi-stage build for Node.js TypeScript backend with PM2
 
 # Stage 1: Build stage
 FROM node:20-alpine AS builder
@@ -19,8 +19,11 @@ COPY src ./src
 # Build TypeScript to JavaScript
 RUN yarn build
 
-# Stage 2: Production stage
+# Stage 2: Production stage with PM2
 FROM node:20-alpine AS production
+
+# Install PM2 globally
+RUN npm install -g pm2
 
 # Set working directory
 WORKDIR /app
@@ -46,11 +49,11 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3005
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3005/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the application
-CMD ["node", "dist/index.js"]
+# Start the application with PM2
+CMD ["pm2-runtime", "start", "dist/index.js", "--name", "poll-backend"]

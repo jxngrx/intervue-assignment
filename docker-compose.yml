@@ -7,27 +7,36 @@ services:
       dockerfile: Dockerfile
     container_name: poll-backend
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - MONGODB_URI=mongodb://mongo:27017/polling-system
-    depends_on:
-      - mongo
+      - "3005:3005"
+    # depends_on:
+    #   - mongo
     restart: unless-stopped
     networks:
       - poll-network
 
-  mongo:
-    image: mongo:7
-    container_name: poll-mongo
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: poll-frontend
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
+      - "5173:5173"
+    # depends_on:
+    #   - mongo
     restart: unless-stopped
     networks:
       - poll-network
+
+  # mongo:
+  #   image: mongo:7
+  #   container_name: poll-mongo
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo-data:/data/db
+  #   restart: unless-stopped
+  #   networks:
+  #     - poll-network
 
 volumes:
   mongo-data:
