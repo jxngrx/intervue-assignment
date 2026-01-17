@@ -93,8 +93,7 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
         eventInfo = `Event Type: ${event.type || 'unknown'}\nEvent Target: ${event.target ? (event.target.constructor?.name || 'unknown') : 'none'}\nReadyState: ${event.target?.readyState || 'N/A'}\nURL: ${event.target?.url || 'N/A'}`;
       }
 
-      // Try to extract useful info from error object
-      let errorDetails = '';
+      // Try to extract useful info from error object for logging
       try {
         // Create a clean object without Event objects
         const cleanError: any = {
@@ -117,9 +116,10 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
           }
         }
 
-        errorDetails = JSON.stringify(cleanError, null, 2);
+        const errorDetails = JSON.stringify(cleanError, null, 2);
+        console.error('Error details (JSON):', errorDetails);
       } catch (e) {
-        errorDetails = `Error: ${errorMessage}\nType: ${errorType}`;
+        console.error('Could not stringify error:', e);
       }
 
       console.error('❌ Socket.io connection error:', errorMessage);
