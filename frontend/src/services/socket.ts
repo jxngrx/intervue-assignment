@@ -10,6 +10,9 @@ export const setGlobalToast = (toastFn: (message: string, type?: 'success' | 'er
 };
 
 let socketInstance: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+let retryCount = 0;
+let lastRetryTransport: string | null = null;
+const MAX_RETRIES = 3;
 
 export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> => {
   if (!socketInstance) {
@@ -39,6 +42,10 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       const currentSocket = socketInstance;
       if (!currentSocket) return;
 
+      // Reset retry count on successful connection
+      retryCount = 0;
+      lastRetryTransport = null;
+
       console.log('✅ Socket.io connected:', currentSocket.id);
       try {
         const transport = (currentSocket.io?.engine as any)?.transport?.name;
@@ -58,9 +65,7 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
           currentSocket.io.engine.on('error', (error: string | Error) => {
             const errorMsg = typeof error === 'string' ? error : error.message || 'Unknown engine error';
             console.error('❌ Socket.io engine error:', errorMsg);
-            if (globalToast) {
-              globalToast(`Engine Error: ${errorMsg}`, 'error');
-            }
+            // Don't show toast for engine errors during connection attempts to avoid spam
           });
         }
       } catch (e) {
@@ -176,13 +181,21 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
         fullErrorMsg += `\n\nStack:\n${stackLines}`;
       }
 
-      if (globalToast) {
-        globalToast(fullErrorMsg, 'error');
+      // Check if we've exceeded max retries FIRST
+      if (retryCount >= MAX_RETRIES) {
+        const finalErrorMsg = `Connection Failed\n\nUnable to connect after ${MAX_RETRIES} attempts.\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}\n\nPlease check your network connection and try refreshing the page.`;
+        if (globalToast) {
+          globalToast(finalErrorMsg, 'error');
+        }
+        console.error('❌ Max retries exceeded, stopping connection attempts');
+        return;
       }
 
       // Handle websocket errors - try polling instead
-      if (errorMessage.includes('websocket error') || errorMessage.includes('WebSocket') || (errorType === 'TransportError' && errorMessage.includes('websocket'))) {
-        const wsErrorMsg = `WebSocket Error Detected!\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}\n\nRetrying with Polling transport...`;
+      if ((errorMessage.includes('websocket error') || errorMessage.includes('WebSocket') || (errorType === 'TransportError' && errorMessage.includes('websocket'))) && lastRetryTransport !== 'polling') {
+        retryCount++;
+        lastRetryTransport = 'polling';
+        const wsErrorMsg = `WebSocket Error (Attempt ${retryCount}/${MAX_RETRIES})\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}\n\nRetrying with Polling transport...`;
         if (globalToast) {
           globalToast(wsErrorMsg, 'error');
         }
@@ -194,14 +207,16 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
             if (socketInstance && !socketInstance.connected) {
               socketInstance.connect();
             }
-          }, 1000);
+          }, 2000); // Increased delay
         }
         return;
       }
 
       // Handle XHR polling errors specifically
-      if (errorMessage.includes('xhr poll error') || errorMessage.includes('polling') || errorMessage.includes('XHR') || (errorType === 'TransportError' && errorMessage.includes('poll'))) {
-        const pollErrorMsg = `XHR Polling Error Detected!\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}\n\nRetrying with WebSocket transport...`;
+      if ((errorMessage.includes('xhr poll error') || errorMessage.includes('polling') || errorMessage.includes('XHR') || (errorType === 'TransportError' && errorMessage.includes('poll'))) && lastRetryTransport !== 'websocket') {
+        retryCount++;
+        lastRetryTransport = 'websocket';
+        const pollErrorMsg = `XHR Polling Error (Attempt ${retryCount}/${MAX_RETRIES})\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}${xhrInfo ? `\n\n${xhrInfo}` : ''}\n\nRetrying with WebSocket transport...`;
         if (globalToast) {
           globalToast(pollErrorMsg, 'error');
         }
@@ -213,24 +228,26 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
             if (socketInstance && !socketInstance.connected) {
               socketInstance.connect();
             }
-          }, 1000);
+          }, 2000); // Increased delay
         }
         return;
       }
 
-      // For mobile, try to reconnect with different transport
-      if (isMobile && socketInstance && !socketInstance.connected) {
-        const retryMsg = `Mobile Connection Issue\n\nError: ${errorMessage}\nType: ${errorType}\n\nRetrying with polling transport...`;
+      // For other errors on mobile, try to reconnect with different transport
+      if (isMobile && socketInstance && !socketInstance.connected && retryCount < MAX_RETRIES) {
+        retryCount++;
+        const retryMsg = `Connection Issue (Attempt ${retryCount}/${MAX_RETRIES})\n\nError: ${errorMessage}\nType: ${errorType}\n\nRetrying...`;
         if (globalToast) {
           globalToast(retryMsg, 'info');
         }
         setTimeout(() => {
           if (socketInstance && !socketInstance.connected) {
-            console.log('🔄 Retrying connection with polling transport...');
+            console.log('🔄 Retrying connection...');
+            // Try both transports
             socketInstance.io.opts.transports = ['polling', 'websocket'];
             socketInstance.connect();
           }
-        }, 2000);
+        }, 3000); // Longer delay for general retries
       }
     });
   }
