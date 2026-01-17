@@ -79,12 +79,14 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
 
     socketInstance.on('connect_error', (error) => {
       const errorMessage = error.message || 'Unknown connection error';
-      const errorType = error.type || 'unknown';
-      const errorDescription = error.description || '';
+      // Socket.io error object may have additional properties
+      const errorType = (error as any).type || 'unknown';
+      const errorDescription = (error as any).description || '';
 
       console.error('❌ Socket.io connection error:', errorMessage);
       console.error('Error type:', errorType);
       console.error('Error description:', errorDescription);
+      console.error('Full error object:', error);
 
       // Show detailed error in toast for mobile debugging
       const fullErrorMsg = `Connection Error: ${errorMessage}${errorType !== 'unknown' ? ` (Type: ${errorType})` : ''}${errorDescription ? ` - ${errorDescription}` : ''}`;

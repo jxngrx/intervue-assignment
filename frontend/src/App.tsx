@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { UserProvider, useUser } from './context/UserContext';
 import { PollProvider } from './context/PollContext';
@@ -10,6 +11,7 @@ import { TeacherLiveResults } from './pages/TeacherLiveResults';
 import { TeacherPollHistory } from './pages/TeacherPollHistory';
 import { ConnectionStatus } from './components/common/ConnectionStatus';
 import { ToastContainer } from './components/common/Toast';
+import { setGlobalToast } from './services/socket';
 
 // Protected Route Component - must be inside UserProvider
 const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'teacher' | 'student' }) => {
