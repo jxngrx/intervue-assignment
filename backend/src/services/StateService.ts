@@ -21,11 +21,37 @@ export class StateService {
   /**
    * Get complete state for teacher (for state recovery)
    */
-  async getTeacherState(): Promise<TeacherState> {
+  async getTeacherState(connectedStudentsCount?: number): Promise<TeacherState> {
     const activePoll = await PollService.getActivePoll();
 
     if (!activePoll) {
-      const canCreateInfo = await PollService.canCreateNewPoll();
+      // If no active poll, get the most recent completed poll to show results
+      const history = await PollService.getPollHistory();
+      const lastCompletedPoll = history.length > 0 ? history[0] : null;
+
+      const canCreateInfo = await PollService.canCreateNewPoll(connectedStudentsCount);
+
+      if (lastCompletedPoll) {
+        // Return the last completed poll with its results
+        const voteCounts = await VoteService.getVoteCounts(lastCompletedPoll.id);
+        return {
+          activePoll: {
+            _id: lastCompletedPoll.id,
+            question: lastCompletedPoll.question,
+            options: lastCompletedPoll.options,
+            status: lastCompletedPoll.status,
+            duration: lastCompletedPoll.duration,
+            startTime: lastCompletedPoll.startTime,
+            endTime: lastCompletedPoll.endTime,
+            createdAt: lastCompletedPoll.createdAt,
+          },
+          voteCounts,
+          timerState: { remaining: 0, isActive: false, elapsed: lastCompletedPoll.duration, totalDuration: lastCompletedPoll.duration },
+          canCreateNewPoll: canCreateInfo.canCreate,
+          reason: canCreateInfo.reason,
+        };
+      }
+
       return {
         activePoll: null,
         voteCounts: null,
@@ -37,7 +63,7 @@ export class StateService {
 
     const voteCounts = await VoteService.getVoteCounts(activePoll.id);
     const timerState = await TimerService.getTimerState(activePoll.id);
-    const canCreateInfo = await PollService.canCreateNewPoll();
+    const canCreateInfo = await PollService.canCreateNewPoll(connectedStudentsCount);
 
     return {
       activePoll: {

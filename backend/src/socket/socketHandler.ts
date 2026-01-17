@@ -29,12 +29,8 @@ export const initializeSocket = (httpServer: HttpServer): SocketServer<
   io.on('connection', (socket) => {
     console.log(`✅ Client connected: ${socket.id}`);
 
-    // Setup poll-related socket handlers
+    // Setup poll-related socket handlers (includes disconnect handler)
     setupPollSocketHandlers(io, socket);
-
-    socket.on('disconnect', () => {
-      console.log(`❌ Client disconnected: ${socket.id}`);
-    });
   });
 
   return io;

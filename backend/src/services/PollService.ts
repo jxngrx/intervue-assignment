@@ -97,9 +97,9 @@ export class PollService {
 
   /**
    * Check if a new poll can be created
-   * Rules: No active poll OR all students have voted
+   * Rules: No active poll OR all students have voted OR time ended
    */
-  async canCreateNewPoll(): Promise<{ canCreate: boolean; reason?: string }> {
+  async canCreateNewPoll(connectedStudentsCount?: number): Promise<{ canCreate: boolean; reason?: string }> {
     const activePoll = await this.getActivePoll();
 
     if (!activePoll) {
@@ -114,6 +114,26 @@ export class PollService {
       return { canCreate: true };
     }
 
+    // Check if poll is completed
+    if (activePoll.status === 'completed') {
+      return { canCreate: true };
+    }
+
+    // If we have connected students count, check if all have voted
+    if (connectedStudentsCount !== undefined && connectedStudentsCount > 0) {
+      const VoteService = (await import('./VoteService')).default;
+      const voteCounts = await VoteService.getVoteCounts(activePoll.id);
+
+      if (voteCounts.totalVotes >= connectedStudentsCount) {
+        // All students have voted - auto-complete the poll if still active
+        if (activePoll.status === 'active') {
+          activePoll.status = 'completed';
+          await (activePoll as any).save();
+        }
+        return { canCreate: true };
+      }
+    }
+
     return {
       canCreate: false,
       reason: 'An active poll exists. Please wait for it to complete or ensure all students have voted.',
@@ -126,6 +146,20 @@ export class PollService {
   async completePoll(pollId: string): Promise<IPoll> {
     const poll = await this.getPollById(pollId);
     poll.status = 'completed';
+    return await (poll as any).save();
+  }
+
+  /**
+   * Cancel a poll (mark as cancelled - no results shown)
+   */
+  async cancelPoll(pollId: string): Promise<IPoll> {
+    const poll = await this.getPollById(pollId);
+
+    if (poll.status === 'completed') {
+      throw new BadRequestError('Cannot cancel a completed poll');
+    }
+
+    poll.status = 'cancelled';
     return await (poll as any).save();
   }
 

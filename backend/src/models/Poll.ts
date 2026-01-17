@@ -10,7 +10,7 @@ export interface IPoll extends Document {
   id: string;
   question: string;
   options: IPollOption[];
-  status: 'pending' | 'active' | 'completed';
+  status: 'pending' | 'active' | 'completed' | 'cancelled';
   duration: number; // in seconds, max 60
   startTime?: Date;
   endTime?: Date;
@@ -46,7 +46,7 @@ const PollSchema = new Schema<IPoll>(
     },
     status: {
       type: String,
-      enum: ['pending', 'active', 'completed'],
+      enum: ['pending', 'active', 'completed', 'cancelled'],
       default: 'pending',
     },
     duration: {
