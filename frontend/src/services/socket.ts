@@ -86,12 +86,40 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       const errorCode = errorObj.code || '';
       const errorContext = errorObj.context || '';
 
-      // Try to stringify the full error object for debugging
+      // Handle Event objects properly (they can't be stringified directly)
+      let eventInfo = '';
+      if (errorObj.event) {
+        const event = errorObj.event;
+        eventInfo = `Event Type: ${event.type || 'unknown'}\nEvent Target: ${event.target ? (event.target.constructor?.name || 'unknown') : 'none'}\nReadyState: ${event.target?.readyState || 'N/A'}\nURL: ${event.target?.url || 'N/A'}`;
+      }
+
+      // Try to extract useful info from error object
       let errorDetails = '';
       try {
-        errorDetails = JSON.stringify(errorObj, Object.getOwnPropertyNames(errorObj), 2);
+        // Create a clean object without Event objects
+        const cleanError: any = {
+          message: errorMessage,
+          type: errorType,
+          code: errorCode,
+          description: errorDescription,
+          context: errorContext,
+        };
+
+        // Add stack trace if available
+        if (errorObj.stack) {
+          cleanError.stack = errorObj.stack;
+        }
+
+        // Add any other enumerable properties
+        for (const key in errorObj) {
+          if (key !== 'event' && typeof errorObj[key] !== 'object') {
+            cleanError[key] = errorObj[key];
+          }
+        }
+
+        errorDetails = JSON.stringify(cleanError, null, 2);
       } catch (e) {
-        errorDetails = String(errorObj);
+        errorDetails = `Error: ${errorMessage}\nType: ${errorType}`;
       }
 
       console.error('❌ Socket.io connection error:', errorMessage);
@@ -99,11 +127,11 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       console.error('Error code:', errorCode);
       console.error('Error description:', errorDescription);
       console.error('Error context:', errorContext);
+      console.error('Event info:', eventInfo);
       console.error('Full error object:', errorObj);
-      console.error('Error details (JSON):', errorDetails);
 
       // Build comprehensive error message for mobile
-      let fullErrorMsg = `Connection Error: ${errorMessage}`;
+      let fullErrorMsg = `Connection Error\n\nMessage: ${errorMessage}`;
       if (errorType && errorType !== 'Unknown') {
         fullErrorMsg += `\nType: ${errorType}`;
       }
@@ -111,25 +139,46 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
         fullErrorMsg += `\nCode: ${errorCode}`;
       }
       if (errorDescription) {
-        fullErrorMsg += `\n${errorDescription}`;
+        fullErrorMsg += `\nDescription: ${errorDescription}`;
+      }
+      if (eventInfo) {
+        fullErrorMsg += `\n\n${eventInfo}`;
       }
       if (errorContext) {
         fullErrorMsg += `\nContext: ${errorContext}`;
       }
 
-      // Add error details if available (truncated for mobile)
-      if (errorDetails && errorDetails.length < 200) {
-        fullErrorMsg += `\nDetails: ${errorDetails}`;
-      } else if (errorDetails) {
-        fullErrorMsg += `\nDetails: ${errorDetails.substring(0, 200)}...`;
+      // Add stack trace (first few lines only for mobile)
+      if (errorObj.stack) {
+        const stackLines = errorObj.stack.split('\n').slice(0, 3).join('\n');
+        fullErrorMsg += `\n\nStack:\n${stackLines}`;
       }
 
       if (globalToast) {
         globalToast(fullErrorMsg, 'error');
       }
 
+      // Handle websocket errors - try polling instead
+      if (errorMessage.includes('websocket error') || errorMessage.includes('WebSocket') || (errorType === 'TransportError' && errorMessage.includes('websocket'))) {
+        const wsErrorMsg = `WebSocket Error Detected!\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}\n\nRetrying with Polling transport...`;
+        if (globalToast) {
+          globalToast(wsErrorMsg, 'error');
+        }
+        console.log('🔄 WebSocket error detected, retrying with polling only...');
+        if (socketInstance && !socketInstance.connected) {
+          // Try polling only as fallback
+          socketInstance.io.opts.transports = ['polling'];
+          setTimeout(() => {
+            if (socketInstance && !socketInstance.connected) {
+              socketInstance.connect();
+            }
+          }, 1000);
+        }
+        return;
+      }
+
       // Handle XHR polling errors specifically
-      if (errorMessage.includes('xhr poll error') || errorMessage.includes('polling') || errorMessage.includes('XHR') || errorType === 'TransportError') {
+      if (errorMessage.includes('xhr poll error') || errorMessage.includes('polling') || errorMessage.includes('XHR') || (errorType === 'TransportError' && errorMessage.includes('poll'))) {
         const pollErrorMsg = `XHR Polling Error Detected!\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}\n\nRetrying with WebSocket transport...`;
         if (globalToast) {
           globalToast(pollErrorMsg, 'error');
