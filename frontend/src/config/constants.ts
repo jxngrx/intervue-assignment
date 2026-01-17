@@ -1,6 +1,24 @@
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+// Use environment variable if set, otherwise detect from browser location
+const getBackendUrl = () => {
+  // Check for environment variable (set at build time)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // In browser, construct URL based on current hostname and backend port
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // Backend is always on port 3005 (mapped from Docker or local)
+    return `http://${hostname}:3005`;
+  }
+
+  // Fallback for build time or SSR
+  return 'http://localhost:3005';
+};
+
+export const API_BASE_URL = getBackendUrl();
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || API_BASE_URL;
 
 // API Endpoints
 export const API_ENDPOINTS = {

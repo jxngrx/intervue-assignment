@@ -6,6 +6,9 @@ services:
     container_name: poll-backend
     ports:
       - "3005:3005"
+    environment:
+      - PORT=3005
+      - CORS_ORIGIN=http://localhost:5173,http://localhost:3000
     # depends_on:
     #   - mongo
     restart: unless-stopped
@@ -16,6 +19,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:3005
+        - VITE_SOCKET_URL=http://localhost:3005
     container_name: poll-frontend
     ports:
       - "5173:5173"

@@ -16,7 +16,13 @@ RUN yarn install --frozen-lockfile --network-timeout 100000 || \
 # Copy source code and config files
 COPY . .
 
-# Build the application
+# Build the application with environment variables
+# Note: Vite env vars must be prefixed with VITE_ and are available at build time
+ARG VITE_API_BASE_URL=http://localhost:3005
+ARG VITE_SOCKET_URL=http://localhost:3005
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
+
 RUN yarn build
 
 # Stage 2: Production stage with PM2

@@ -14,6 +14,11 @@ export const initializeSocket = (httpServer: HttpServer): SocketServer<
   InterServerEvents,
   SocketData
 > => {
+  // Parse CORS origin from environment variable (comma-separated) or use defaults
+  const corsOrigin = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3005'];
+
   const io = new SocketServer<
     ClientToServerEvents,
     ServerToClientEvents,
@@ -21,8 +26,9 @@ export const initializeSocket = (httpServer: HttpServer): SocketServer<
     SocketData
   >(httpServer, {
     cors: {
-      origin: '*', // Configure based on your frontend URL
+      origin: corsOrigin,
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
