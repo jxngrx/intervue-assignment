@@ -32,6 +32,12 @@ export const useSocket = () => {
       setError(err.message || 'Connection error');
       setIsConnected(false);
       console.error('Socket error:', err);
+
+      // For mobile devices, provide more user-friendly error messages
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile && err.message.includes('websocket')) {
+        console.log('📱 Mobile device detected - will retry with polling transport');
+      }
     };
 
     socketInstance.on('connect', onConnect);

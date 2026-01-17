@@ -36,6 +36,17 @@ export const initializeSocket = (httpServer: HttpServer): SocketServer<
       methods: ['GET', 'POST'],
       credentials: true,
     },
+    // Enhanced options for mobile compatibility
+    transports: ['polling', 'websocket'], // Prefer polling for better mobile support
+    allowEIO3: true, // Backward compatibility
+    pingTimeout: 60000, // Increased for mobile networks (60 seconds)
+    pingInterval: 25000, // Ping every 25 seconds
+    // Enable compression for mobile networks
+    perMessageDeflate: {
+      threshold: 1024, // Only compress messages larger than 1KB
+    },
+    // Connection timeout
+    connectTimeout: 30000, // 30 seconds for mobile networks
   });
 
   io.on('connection', (socket) => {

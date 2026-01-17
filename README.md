@@ -5,7 +5,7 @@ A real-time interactive polling application that enables teachers to create and 
 ## Live Demo & Repository
 
 - **Live Demo**: https://poll.jxngrx.in
-- **Repository**: [GitHub Repository URL]
+- **Repository**: https://github.com/jxngrx/intervue-assignment
 
 ## Problem Statement
 
