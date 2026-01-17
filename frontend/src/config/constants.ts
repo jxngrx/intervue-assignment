@@ -15,7 +15,12 @@ const getBackendUrl = () => {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return `http://${hostname}:3005`;
     }
-    // For production domains, use same protocol and hostname with backend port
+    // For production domains (poll.jxngrx.in), use same hostname with backend port
+    // Use http for backend even if frontend is https (or configure your reverse proxy)
+    if (hostname.includes('jxngrx.in')) {
+      return `http://${hostname}:3005`;
+    }
+    // For other production domains, use same protocol and hostname with backend port
     return `${protocol}//${hostname}:3005`;
   }
 

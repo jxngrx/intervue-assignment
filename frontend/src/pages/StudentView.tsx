@@ -14,7 +14,7 @@ import { ToastContainer } from '../components/common/Toast';
 import { ChatWidget } from '../components/common/ChatWidget';
 
 export const StudentView = () => {
-  const { studentId } = useUser();
+  const { studentId, clearUser } = useUser();
   const { activePoll, voteCounts, timerState, submitVote } = usePoll();
   const { state } = useStudentState(studentId);
   const { socket, isConnected } = useSocket();
@@ -84,7 +84,8 @@ export const StudentView = () => {
 
     const handleKicked = () => {
       addToast('You have been kicked out by the teacher', 'error');
-      // Redirect to home after delay
+      clearUser();
+      // Redirect to home after delay with full refresh
       setTimeout(() => {
         window.location.href = '/';
       }, 2000);

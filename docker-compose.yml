@@ -8,7 +8,7 @@ services:
       - "3005:3005"
     environment:
       - PORT=3005
-      - CORS_ORIGIN=http://localhost:5173,http://localhost:3000
+      - CORS_ORIGIN=http://localhost:5173,http://localhost:3000,https://poll.jxngrx.in,http://poll.jxngrx.in
       - MONGODB_URI=mongodb://poll-mongo:27017/polling-system
     depends_on:
       - mongo

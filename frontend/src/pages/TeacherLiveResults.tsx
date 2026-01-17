@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { usePoll } from '../context/PollContext';
 import { useTeacherState } from '../hooks/useTeacherState';
 import { useSocket } from '../hooks/useSocket';
+import { useUser } from '../context/UserContext';
 import { Layout } from '../components/layout/Layout';
 import { PollCard } from '../components/poll/PollCard';
 import { PollResults } from '../components/poll/PollResults';
@@ -18,6 +19,7 @@ export const TeacherLiveResults = () => {
   const { activePoll, voteCounts, timerState, activatePoll, refreshActivePoll } = usePoll();
   const { state } = useTeacherState();
   const { socket, isConnected } = useSocket();
+  const { clearUser } = useUser();
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type?: 'success' | 'error' | 'info' }>>([]);
   const [participants, setParticipants] = useState<Array<{ studentId: string; name: string }>>([]);
@@ -258,25 +260,20 @@ export const TeacherLiveResults = () => {
     addToast(`Student ${participants.find(p => p.studentId === studentId)?.name || 'unknown'} has been kicked out`, 'info');
   };
 
-  const handleStopPoll = () => {
-    if (!displayPoll || !socket || !isConnected) return;
-
-    if (window.confirm('Are you sure you want to cancel this poll? Results will not be shown.')) {
-      socket.emit('poll:cancel', displayPoll._id);
-      addToast('Poll cancelled', 'info');
-    }
-  };
 
   const handleLogout = () => {
     if (!socket || !isConnected) {
-      // If socket not connected, just navigate
-      navigate('/');
+      // If socket not connected, just clear and refresh
+      clearUser();
+      window.location.href = '/';
       return;
     }
 
     if (window.confirm('Are you sure you want to end the session? All students will be disconnected.')) {
       socket.emit('teacher:logout');
-      navigate('/');
+      clearUser();
+      // Force full page refresh to clear all state
+      window.location.href = '/';
     }
   };
 
@@ -346,17 +343,6 @@ export const TeacherLiveResults = () => {
             {displayPoll.status === 'pending' && (
               <Button onClick={handleActivatePoll} size="lg">
                 Activate Poll
-              </Button>
-            )}
-            {displayPoll.status === 'active' && (
-              <Button
-                onClick={handleStopPoll}
-                size="lg"
-                variant="outline"
-                className="!border-red-500 !text-red-500 hover:!bg-red-50"
-              >
-                <span className="material-icons mr-2 align-middle">stop</span>
-                Stop Poll
               </Button>
             )}
             {(canCreatePoll || displayPoll.status === 'completed') && (
