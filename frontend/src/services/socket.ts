@@ -84,7 +84,24 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       const errorType = errorObj.type || errorObj.name || 'Unknown';
       const errorDescription = errorObj.description || '';
       const errorCode = errorObj.code || '';
-      const errorContext = errorObj.context || '';
+      let errorContext = errorObj.context || '';
+
+      // Handle XMLHttpRequest objects in context
+      let xhrInfo = '';
+      if (errorObj.context) {
+        // Check if context is an XMLHttpRequest object
+        if (errorObj.context instanceof XMLHttpRequest ||
+            (typeof errorObj.context === 'object' && errorObj.context.constructor?.name === 'XMLHttpRequest') ||
+            String(errorObj.context).includes('[object XMLHttpRequest]')) {
+          const xhr = errorObj.context as XMLHttpRequest;
+          xhrInfo = `XHR Status: ${xhr.status || 'N/A'}\nXHR StatusText: ${xhr.statusText || 'N/A'}\nXHR ReadyState: ${xhr.readyState || 'N/A'}\nXHR ResponseURL: ${xhr.responseURL || 'N/A'}\nXHR Method: ${xhr.responseType || 'N/A'}`;
+          errorContext = ''; // Don't show [object XMLHttpRequest] string
+        } else if (typeof errorObj.context === 'string' && errorObj.context.includes('[object XMLHttpRequest]')) {
+          // Context is already a string representation, extract XHR if possible
+          xhrInfo = 'XHR Request failed (details unavailable)';
+          errorContext = ''; // Don't show [object XMLHttpRequest] string
+        }
+      }
 
       // Handle Event objects properly (they can't be stringified directly)
       let eventInfo = '';
@@ -128,6 +145,7 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       console.error('Error description:', errorDescription);
       console.error('Error context:', errorContext);
       console.error('Event info:', eventInfo);
+      console.error('XHR info:', xhrInfo);
       console.error('Full error object:', errorObj);
 
       // Build comprehensive error message for mobile
@@ -144,7 +162,11 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       if (eventInfo) {
         fullErrorMsg += `\n\n${eventInfo}`;
       }
-      if (errorContext) {
+      if (xhrInfo) {
+        fullErrorMsg += `\n\n${xhrInfo}`;
+      }
+      // Only show context if it's not an object string representation
+      if (errorContext && !String(errorContext).includes('[object')) {
         fullErrorMsg += `\nContext: ${errorContext}`;
       }
 
