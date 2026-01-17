@@ -15,17 +15,21 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       // For mobile, prefer polling first as it's more reliable, then upgrade to websocket
       transports: isMobile ? ['polling', 'websocket'] : ['websocket', 'polling'],
       upgrade: true, // Allow transport upgrade
-      rememberUpgrade: true, // Remember transport preference
+      rememberUpgrade: false, // Don't remember upgrade on mobile to allow fallback
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 10000, // Increased for mobile networks
       reconnectionAttempts: Infinity,
-      timeout: 30000, // Increased timeout for mobile networks (30 seconds)
+      timeout: 45000, // Increased timeout for mobile networks (45 seconds)
       forceNew: false,
       // Additional options for mobile compatibility
       autoConnect: true,
       // Enable compression for mobile networks
       withCredentials: true,
+      // Polling-specific options for mobile
+      polling: {
+        extraHeaders: {},
+      },
     });
 
     socketInstance.on('connect', () => {
@@ -68,6 +72,22 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
 
     socketInstance.on('connect_error', (error) => {
       console.error('❌ Socket.io connection error:', error.message);
+
+      // Handle XHR polling errors specifically
+      if (error.message.includes('xhr poll error') || error.message.includes('polling')) {
+        console.log('🔄 XHR polling error detected, retrying with websocket only...');
+        if (socketInstance && !socketInstance.connected) {
+          // Try websocket only as fallback
+          socketInstance.io.opts.transports = ['websocket'];
+          setTimeout(() => {
+            if (socketInstance && !socketInstance.connected) {
+              socketInstance.connect();
+            }
+          }, 1000);
+        }
+        return;
+      }
+
       // For mobile, try to reconnect with different transport
       if (isMobile && socketInstance && !socketInstance.connected) {
         setTimeout(() => {

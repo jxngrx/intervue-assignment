@@ -33,8 +33,9 @@ export const initializeSocket = (httpServer: HttpServer): SocketServer<
   >(httpServer, {
     cors: {
       origin: corsOrigin,
-      methods: ['GET', 'POST'],
+      methods: ['GET', 'POST', 'OPTIONS'],
       credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization'],
     },
     // Enhanced options for mobile compatibility
     transports: ['polling', 'websocket'], // Prefer polling for better mobile support
@@ -46,7 +47,12 @@ export const initializeSocket = (httpServer: HttpServer): SocketServer<
       threshold: 1024, // Only compress messages larger than 1KB
     },
     // Connection timeout
-    connectTimeout: 30000, // 30 seconds for mobile networks
+    connectTimeout: 45000, // 45 seconds for mobile networks
+    // Polling-specific options for mobile
+    allowUpgrades: true,
+    httpCompression: true,
+    // Increase maxHttpBufferSize for polling
+    maxHttpBufferSize: 1e6, // 1MB
   });
 
   io.on('connection', (socket) => {
