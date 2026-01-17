@@ -26,10 +26,6 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
       autoConnect: true,
       // Enable compression for mobile networks
       withCredentials: true,
-      // Polling-specific options for mobile
-      polling: {
-        extraHeaders: {},
-      },
     });
 
     socketInstance.on('connect', () => {
