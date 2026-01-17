@@ -51,6 +51,9 @@ RUN (yarn install --frozen-lockfile --production --network-timeout 100000 || \
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
 
+# Copy vite.config.ts for preview server configuration
+COPY --from=builder /app/vite.config.ts ./vite.config.ts
+
 # Change ownership to nodejs user
 RUN chown -R nodejs:nodejs /app
 
@@ -65,4 +68,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:5173', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the application with PM2
-CMD ["pm2-runtime", "start", "node_modules/.bin/vite", "--name", "poll-frontend", "--", "preview", "--host", "0.0.0.0", "--port", "5173"]
+CMD ["pm2-runtime", "start", "node_modules/.bin/vite", "--name", "poll-frontend", "--", "preview", "--host", "0.0.0.0", "--port", "5173", "--config", "vite.config.ts"]
