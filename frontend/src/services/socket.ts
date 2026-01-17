@@ -78,26 +78,59 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
     });
 
     socketInstance.on('connect_error', (error) => {
+      // Extract all possible error information
       const errorMessage = error.message || 'Unknown connection error';
-      // Socket.io error object may have additional properties
-      const errorType = (error as any).type || 'unknown';
-      const errorDescription = (error as any).description || '';
+      const errorObj = error as any;
+      const errorType = errorObj.type || errorObj.name || 'Unknown';
+      const errorDescription = errorObj.description || '';
+      const errorCode = errorObj.code || '';
+      const errorContext = errorObj.context || '';
+
+      // Try to stringify the full error object for debugging
+      let errorDetails = '';
+      try {
+        errorDetails = JSON.stringify(errorObj, Object.getOwnPropertyNames(errorObj), 2);
+      } catch (e) {
+        errorDetails = String(errorObj);
+      }
 
       console.error('❌ Socket.io connection error:', errorMessage);
       console.error('Error type:', errorType);
+      console.error('Error code:', errorCode);
       console.error('Error description:', errorDescription);
-      console.error('Full error object:', error);
+      console.error('Error context:', errorContext);
+      console.error('Full error object:', errorObj);
+      console.error('Error details (JSON):', errorDetails);
 
-      // Show detailed error in toast for mobile debugging
-      const fullErrorMsg = `Connection Error: ${errorMessage}${errorType !== 'unknown' ? ` (Type: ${errorType})` : ''}${errorDescription ? ` - ${errorDescription}` : ''}`;
+      // Build comprehensive error message for mobile
+      let fullErrorMsg = `Connection Error: ${errorMessage}`;
+      if (errorType && errorType !== 'Unknown') {
+        fullErrorMsg += `\nType: ${errorType}`;
+      }
+      if (errorCode) {
+        fullErrorMsg += `\nCode: ${errorCode}`;
+      }
+      if (errorDescription) {
+        fullErrorMsg += `\n${errorDescription}`;
+      }
+      if (errorContext) {
+        fullErrorMsg += `\nContext: ${errorContext}`;
+      }
+
+      // Add error details if available (truncated for mobile)
+      if (errorDetails && errorDetails.length < 200) {
+        fullErrorMsg += `\nDetails: ${errorDetails}`;
+      } else if (errorDetails) {
+        fullErrorMsg += `\nDetails: ${errorDetails.substring(0, 200)}...`;
+      }
 
       if (globalToast) {
         globalToast(fullErrorMsg, 'error');
       }
 
       // Handle XHR polling errors specifically
-      if (errorMessage.includes('xhr poll error') || errorMessage.includes('polling') || errorMessage.includes('XHR')) {
-        const pollErrorMsg = `XHR Polling Error: ${errorMessage}. Retrying with WebSocket...`;
+      if (errorMessage.includes('xhr poll error') || errorMessage.includes('polling') || errorMessage.includes('XHR') || errorType === 'TransportError') {
+        const pollErrorMsg = `XHR Polling Error Detected!\n\nError: ${errorMessage}\nType: ${errorType}${errorCode ? `\nCode: ${errorCode}` : ''}\n\nRetrying with WebSocket transport...`;
         if (globalToast) {
           globalToast(pollErrorMsg, 'error');
         }
@@ -116,7 +149,7 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
 
       // For mobile, try to reconnect with different transport
       if (isMobile && socketInstance && !socketInstance.connected) {
-        const retryMsg = `Mobile connection issue. Retrying with polling transport...`;
+        const retryMsg = `Mobile Connection Issue\n\nError: ${errorMessage}\nType: ${errorType}\n\nRetrying with polling transport...`;
         if (globalToast) {
           globalToast(retryMsg, 'info');
         }

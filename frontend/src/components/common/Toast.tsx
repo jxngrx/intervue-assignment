@@ -37,10 +37,10 @@ export const Toast = ({ message, type = 'info', duration = 3000, onClose }: Toas
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <p className={`${isMobile ? 'text-sm' : 'text-base'} break-words whitespace-pre-wrap`}>
+        <div className="flex-1 min-w-0 overflow-y-auto max-h-[80vh]">
+          <pre className={`${isMobile ? 'text-xs' : 'text-sm'} break-words whitespace-pre-wrap font-sans overflow-x-auto`}>
             {message}
-          </p>
+          </pre>
         </div>
         <button
           onClick={() => {
