@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Poll from '../models/Poll';
 import { NotFoundError } from '../utils/errors';
 
@@ -98,6 +99,11 @@ export class TimerService {
    * Check and auto-complete expired polls
    */
   async checkAndCompleteExpiredPolls(): Promise<void> {
+    // Check if mongoose is connected before running query
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error('MongoDB not connected');
+    }
+
     const activePolls = await Poll.find({ status: 'active' }).exec();
     const now = new Date();
 

@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import apiRoutes from './routes';
@@ -57,26 +58,41 @@ app.use('/api', apiRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Connect to database
-connectDatabase().catch((error) => {
-  console.error('Failed to connect to database:', error);
-});
+// Connect to database and start server after connection
+connectDatabase()
+  .then(() => {
+    // Start server only after database connection is established
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT}`);
+      console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔌 Socket.io server initialized`);
+    });
 
-// Periodic check for expired polls (every 5 seconds)
-setInterval(async () => {
-  try {
-    await TimerService.checkAndCompleteExpiredPolls();
-  } catch (error) {
-    console.error('Error checking expired polls:', error);
-  }
-}, 5000);
-
-// Start server
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔌 Socket.io server initialized`);
-});
+    // Periodic check for expired polls (every 5 seconds)
+    // Only start after database is connected
+    setInterval(async () => {
+      try {
+        // Check if mongoose is connected before running query
+        if (mongoose.connection.readyState === 1) {
+          await TimerService.checkAndCompleteExpiredPolls();
+        } else {
+          console.warn('⚠️ MongoDB not connected, skipping expired polls check');
+        }
+      } catch (error) {
+        console.error('Error checking expired polls:', error);
+      }
+    }, 5000);
+  })
+  .catch((error) => {
+    console.error('Failed to connect to database:', error);
+    // Still start server but without database-dependent features
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT} (without database)`);
+      console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔌 Socket.io server initialized`);
+      console.warn('⚠️ Running without database connection - some features may not work');
+    });
+  });
 
 export { app, io };
 export default app;

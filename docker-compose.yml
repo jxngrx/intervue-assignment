@@ -9,8 +9,9 @@ services:
     environment:
       - PORT=3005
       - CORS_ORIGIN=http://localhost:5173,http://localhost:3000
-    # depends_on:
-    #   - mongo
+      - MONGODB_URI=mongodb://poll-mongo:27017/polling-system
+    depends_on:
+      - mongo
     restart: unless-stopped
     networks:
       - poll-network
@@ -31,16 +32,16 @@ services:
     networks:
       - poll-network
 
-  # mongo:
-  #   image: mongo:7
-  #   container_name: poll-mongo
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - mongo-data:/data/db
-  #   restart: unless-stopped
-  #   networks:
-  #     - poll-network
+  mongo:
+    image: mongo:7
+    container_name: poll-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+    networks:
+      - poll-network
 
 volumes:
   mongo-data:
