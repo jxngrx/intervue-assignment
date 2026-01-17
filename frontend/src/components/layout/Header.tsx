@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../context/UserContext';
 
 interface HeaderProps {
   showBackButton?: boolean;
@@ -7,7 +6,6 @@ interface HeaderProps {
 
 export const Header = ({ showBackButton = false }: HeaderProps) => {
   const navigate = useNavigate();
-  const { role } = useUser();
 
   return (
     <header className="p-6">

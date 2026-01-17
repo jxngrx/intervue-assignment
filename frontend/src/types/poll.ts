@@ -7,7 +7,7 @@ export interface Poll {
   _id: string;
   question: string;
   options: PollOption[];
-  status: 'pending' | 'active' | 'completed';
+  status: 'pending' | 'active' | 'completed' | 'cancelled';
   duration: number; // in seconds
   startTime?: string | Date;
   endTime?: string | Date;

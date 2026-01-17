@@ -40,7 +40,7 @@ export const StudentView = () => {
   const displayTimerState = timerState || state?.timerState;
 
   // Timer should continue based on poll status, not vote status
-  const timer = usePollTimer({
+  usePollTimer({
     startTime: displayPoll?.startTime,
     duration: displayPoll?.duration || 0,
     isActive: displayPoll?.status === 'active', // Timer continues even after vote
@@ -247,7 +247,7 @@ export const StudentView = () => {
       <div className="w-full max-w-2xl mx-auto p-6 animate-fade-in">
         <div className="flex items-center justify-between mb-6 px-2">
           <h2 className="text-2xl font-bold text-gray-dark">Question {pollCount || 1}</h2>
-          <Timer timerState={displayTimerState || undefined} />
+          <Timer timerState={displayTimerState ?? null} />
         </div>
 
         <PollCard poll={displayPoll}>

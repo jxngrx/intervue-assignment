@@ -163,7 +163,7 @@ export const StudentPollView = () => {
       <div className="w-full max-w-2xl mx-auto p-6 animate-fade-in">
         <div className="flex items-center justify-between mb-6 px-2">
           <h2 className="text-2xl font-bold text-gray-dark">Question 1</h2>
-          <Timer timerState={timerState || undefined} />
+          <Timer timerState={timerState ?? null} />
         </div>
 
         <PollCard poll={activePoll}>

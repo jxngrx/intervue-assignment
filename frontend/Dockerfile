@@ -9,8 +9,9 @@ WORKDIR /app
 # Copy package files
 COPY package.json yarn.lock ./
 
-# Install dependencies (including devDependencies for build)
-RUN yarn install --frozen-lockfile
+# Install dependencies (including devDependencies for build) with retry logic
+RUN yarn install --frozen-lockfile --network-timeout 100000 || \
+    (sleep 5 && yarn install --frozen-lockfile --network-timeout 100000)
 
 # Copy source code and config files
 COPY . .
@@ -34,9 +35,11 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files
 COPY package.json yarn.lock ./
 
-# Install production dependencies, then add vite for preview
-RUN yarn install --frozen-lockfile --production && \
-    yarn add vite@^7.2.4 --production && \
+# Install production dependencies, then add vite for preview with retry logic
+RUN (yarn install --frozen-lockfile --production --network-timeout 100000 || \
+     (sleep 5 && yarn install --frozen-lockfile --production --network-timeout 100000)) && \
+    (yarn add vite@^7.2.4 --production --network-timeout 100000 || \
+     (sleep 5 && yarn add vite@^7.2.4 --production --network-timeout 100000)) && \
     yarn cache clean
 
 # Copy built files from builder stage

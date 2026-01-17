@@ -9,8 +9,9 @@ WORKDIR /app
 # Copy package files
 COPY package.json yarn.lock ./
 
-# Install dependencies (including devDependencies for build)
-RUN yarn install --frozen-lockfile
+# Install dependencies (including devDependencies for build) with retry logic
+RUN yarn install --frozen-lockfile --network-timeout 100000 || \
+    (sleep 5 && yarn install --frozen-lockfile --network-timeout 100000)
 
 # Copy source code and config files
 COPY tsconfig.json ./
@@ -35,8 +36,9 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files
 COPY package.json yarn.lock ./
 
-# Install only production dependencies
-RUN yarn install --frozen-lockfile --production && \
+# Install only production dependencies with retry logic
+RUN yarn install --frozen-lockfile --production --network-timeout 100000 || \
+    (sleep 5 && yarn install --frozen-lockfile --production --network-timeout 100000) && \
     yarn cache clean
 
 # Copy built files from builder stage

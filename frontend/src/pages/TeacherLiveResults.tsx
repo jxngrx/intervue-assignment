@@ -77,7 +77,7 @@ export const TeacherLiveResults = () => {
 
   // Re-request participants when component mounts or socket reconnects
   useEffect(() => {
-    if (socket && isConnected && socket.data?.role === 'teacher') {
+    if (socket && isConnected) {
       // Small delay to ensure teacher:set has been processed
       const timeout = setTimeout(() => {
         socket.emit('participants:request');

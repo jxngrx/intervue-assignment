@@ -21,7 +21,7 @@ export const TeacherCreatePoll = () => {
     }
   }, [socket, isConnected]);
   const [options, setOptions] = useState<string[]>(['', '']);
-  const [duration, setDuration] = useState(POLL_CONFIG.DEFAULT_DURATION);
+  const [duration, setDuration] = useState<number>(POLL_CONFIG.DEFAULT_DURATION);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type?: 'success' | 'error' | 'info' }>>([]);
 

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { TimerState } from '../types/socket';
 import { formatters } from '../utils/formatters';
 
 interface UsePollTimerProps {
@@ -17,7 +16,7 @@ export const usePollTimer = ({
 }: UsePollTimerProps) => {
   const [remaining, setRemaining] = useState<number>(duration);
   const [isTimerActive, setIsTimerActive] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const calculateRemaining = useCallback((): number => {
     if (!startTime) {
