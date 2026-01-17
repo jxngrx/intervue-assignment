@@ -29,10 +29,29 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
     });
 
     socketInstance.on('connect', () => {
-      console.log('✅ Socket.io connected:', socketInstance?.id);
+      const currentSocket = socketInstance;
+      if (!currentSocket) return;
+
+      console.log('✅ Socket.io connected:', currentSocket.id);
       try {
-        const transport = (socketInstance?.io?.engine as any)?.transport?.name;
+        const transport = (currentSocket.io?.engine as any)?.transport?.name;
         console.log('📡 Transport:', transport || 'unknown');
+
+        // Set up engine event listeners after connection
+        if (currentSocket.io.engine) {
+          currentSocket.io.engine.on('upgrade', () => {
+            try {
+              const upgradedTransport = (currentSocket?.io?.engine as any)?.transport?.name;
+              console.log('⬆️ Transport upgraded to:', upgradedTransport || 'unknown');
+            } catch (e) {
+              console.log('⬆️ Transport upgraded');
+            }
+          });
+
+          currentSocket.io.engine.on('error', (error: string | Error) => {
+            console.error('❌ Socket.io engine error:', error);
+          });
+        }
       } catch (e) {
         // Transport info not available
       }
@@ -59,21 +78,6 @@ export const getSocket = (): Socket<ServerToClientEvents, ClientToServerEvents> 
           }
         }, 2000);
       }
-    });
-
-    // Handle transport upgrade
-    socketInstance.io.on('upgrade', () => {
-      try {
-        const transport = (socketInstance?.io?.engine as any)?.transport?.name;
-        console.log('⬆️ Transport upgraded to:', transport || 'unknown');
-      } catch (e) {
-        console.log('⬆️ Transport upgraded');
-      }
-    });
-
-    // Handle transport errors
-    socketInstance.io.on('error', (error: Error) => {
-      console.error('❌ Socket.io engine error:', error);
     });
   }
   return socketInstance;
