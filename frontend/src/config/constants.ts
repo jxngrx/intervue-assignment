@@ -9,8 +9,14 @@ const getBackendUrl = () => {
   // In browser, construct URL based on current hostname and backend port
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Backend is always on port 3005 (mapped from Docker or local)
-    return `http://${hostname}:3005`;
+    const protocol = window.location.protocol;
+    // For production domains, use same hostname with backend port
+    // For localhost, use localhost:3005
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `http://${hostname}:3005`;
+    }
+    // For production domains, use same protocol and hostname with backend port
+    return `${protocol}//${hostname}:3005`;
   }
 
   // Fallback for build time or SSR
